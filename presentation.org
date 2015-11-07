@@ -1,5 +1,5 @@
 #+TITLE: Plug + Joken
-#+AUTHOR: Victos O Nascimento
+#+AUTHOR: Victor O Nascimento
 #+EMAIL: @cs-victor-nascimento
 #+DATE: <2015-11-07 Sábado>
 
@@ -398,6 +398,8 @@ end
 #+END_SRC
 
 * É isso aí pessoal \o/
+
+http://cs-victor-nascimento.github.io/api_plug_joken
 
 victor.nasciment <at> concretesolutions.com.br
 @cs-victor-nascimento
