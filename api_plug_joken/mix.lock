@@ -1,0 +1,10 @@
+%{"amnesia": {:git, "https://github.com/meh/amnesia.git", "d0524ae81e07eb94d56e8a34540420b13178df09", [branch: "master"]},
+  "base64url": {:hex, :base64url, "0.0.1"},
+  "cowboy": {:hex, :cowboy, "1.0.3"},
+  "cowlib": {:hex, :cowlib, "1.0.1"},
+  "exquisite": {:hex, :exquisite, "0.1.5"},
+  "joken": {:git, "https://github.com/bryanjos/joken.git", "e256b32fb9b2a0dde7f49a4fff37633242682e77", [branch: "master"]},
+  "jose": {:hex, :jose, "1.3.0"},
+  "plug": {:hex, :plug, "1.0.2"},
+  "poison": {:hex, :poison, "1.5.0"},
+  "ranch": {:hex, :ranch, "1.1.0"}}

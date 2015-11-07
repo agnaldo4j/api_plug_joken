@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8"/>
+<title>Plug + Joken</title>
+<meta name="author" content="(Victos O Nascimento)"/>
+<link rel="stylesheet" href="./reveal.js/css/reveal.css"/>
+<link rel="stylesheet" href="./reveal.js/css/theme/sky.css" id="theme"/>
+<link rel="stylesheet" href="presentation.css"/>
+<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+<script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = './reveal.js/css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+</script>
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section id="sec-title-slide">
+<h1>Plug + Joken</h1>
+<h2>Victos O Nascimento</h2>
+<h2><a href="mailto:@cs-victor-nascimento">@cs-victor-nascimento</a></h2>
+<h2><span class="timestamp-wrapper"><span class="timestamp">&lt;2015-11-07 Sáb&gt;</span></span></h2>
+</section>
+
+<section>
+<section id="slide-orgheadline1">
+<h2 id="orgheadline1">The power of Elixir</h2>
+<p>
+<b>&#x2026;and Emacs :D</b>
+</p>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline2">
+<h2 id="orgheadline2">Agenda</h2>
+<ul>
+<li>Cenário</li>
+<li>Frameworks</li>
+<li>Fluxos de token</li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline3">
+<h2 id="orgheadline3">Cenário</h2>
+<p>
+<i>SIGN IN | SIGN UP | GET USER</i>
+</p>
+
+<ul>
+<li><b>POST</b> /user/sign_up
+<ul>
+<li>Valida os dados</li>
+<li>Cria um usuário no banco</li>
+<li>Gera um token e o salva no banco</li>
+
+</ul></li>
+<li><b>POST</b> /user/sign_in
+<ul>
+<li>Valida os dados</li>
+<li>Gera um token e o salva no banco</li>
+
+</ul></li>
+<li><b>GET</b> /user/{user_id}
+<ul>
+<li>Retorna o usuário</li>
+
+</ul></li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline9">
+<h2 id="orgheadline9">Frameworks utilizados</h2>
+<ul>
+<li>Plug
+<ul>
+<li><a href="https://github.com/elixir-lang/plug">https://github.com/elixir-lang/plug</a></li>
+<li><a href="http://hexdocs.pm/plug">http://hexdocs.pm/plug</a></li>
+
+</ul></li>
+<li>Joken 
+<ul>
+<li><a href="https://github.com/bryanjos/joken">https://github.com/bryanjos/joken</a></li>
+<li><a href="http://hexdocs.pm/joken">http://hexdocs.pm/joken</a></li>
+
+</ul></li>
+<li>Amnesia (hã?)
+<ul>
+<li><a href="https://github.com/meh/amnesia">https://github.com/meh/amnesia</a></li>
+
+</ul></li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline4">
+<h3 id="orgheadline4">Mas está faltando coisa&#x2026;</h3>
+<ul>
+<li><p>
+<b>Phoenix????</b>
+</p>
+
+<p>
+2MM de conexões em uma máquina!!! 
+</p></li>
+
+<li><p>
+<b>Ecto????</b>
+</p>
+
+<p>
+Tem até conector para MongoDB!!!
+</p></li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline5">
+<h3 id="orgheadline5">Phoenix vale a pena?</h3>
+
+<div class="figure">
+<p><img src="imgs/crazy_meme.jpg" alt="crazy_meme.jpg" />
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline6">
+<h3 id="orgheadline6">CLARO! Mas qual o overhead?</h3>
+<ul>
+<li>Focado em channels e renderização de templates</li>
+<li>Aceita Plugs, então fácil migrar</li>
+<li>Suporta APIs mas traz mais do que precisamos</li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline7">
+<h3 id="orgheadline7">E o Ecto?</h3>
+
+<div class="figure">
+<p><img src="imgs/meme_ecto.jpg" alt="meme_ecto.jpg" />
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline8">
+<h3 id="orgheadline8">Nosso caso é muito simples</h3>
+<ul>
+<li>O Erlang já vem com um banco de dados</li>
+<li>O Erlang já vem com uma query language</li>
+<li>É importante conhecer essa linguagem mesmo que vá usar Ecto</li>
+<li>A apresentação fica mais portável \o/</li>
+
+</ul>
+
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline12">
+<h2 id="orgheadline12">1. MIX</h2>
+
+<div class="figure">
+<p><img src="imgs/mix_output.png" alt="mix_output.png" />
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline10">
+<h3 id="orgheadline10">mix.exs</h3>
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #73d216;"># </span><span style="color: #73d216;">precisamos dessas aplicacoes startadas</span>
+<span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">application</span> <span style="color: #b4fa70;">do</span>
+  [<span style="color: #87cefa;">applications:</span> [<span style="color: #87cefa;">:logger</span>, <span style="color: #87cefa;">:cowboy</span>, <span style="color: #87cefa;">:plug</span>, <span style="color: #87cefa;">:amnesia</span>],
+   <span style="color: #73d216;"># </span><span style="color: #73d216;">Nosso m&#243;dulo que inicia tudo </span>
+   <span style="color: #87cefa;">mod:</span> {<span style="color: #8cc4ff;">ApiPlugJoken</span>, []}]
+<span style="color: #b4fa70;">end</span>
+
+<span style="color: #73d216;"># </span><span style="color: #73d216;">estamos usando a branch master de algumas coisas aqui</span>
+<span style="color: #b4fa70;">defp</span> <span style="color: #fce94f;">deps</span> <span style="color: #b4fa70;">do</span>
+  [{<span style="color: #87cefa;">:amnesia</span>, <span style="color: #87cefa;">github:</span> <span style="color: #e9b96e;">"meh/amnesia"</span>, <span style="color: #87cefa;">branch:</span> <span style="color: #e9b96e;">"master"</span>},
+   {<span style="color: #87cefa;">:poison</span>, <span style="color: #e9b96e;">"~&gt; 1.5.0"</span>},
+   {<span style="color: #87cefa;">:cowboy</span>, <span style="color: #e9b96e;">"~&gt; 1.0.0"</span>},
+   {<span style="color: #87cefa;">:plug</span>, <span style="color: #e9b96e;">"~&gt; 1.0"</span>},
+   {<span style="color: #87cefa;">:joken</span>, <span style="color: #87cefa;">github:</span> <span style="color: #e9b96e;">"bryanjos/joken"</span>, <span style="color: #87cefa;">branch:</span> <span style="color: #e9b96e;">"master"</span>}]
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre  class="src src-sh">mix do deps.get, compile
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline11">
+<h3 id="orgheadline11">ApiPlugJoken</h3>
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #b4fa70;">defmodule</span> <span style="color: #8cc4ff;">ApiPlugJoken</span> <span style="color: #b4fa70;">do</span>
+  <span style="color: #b4fa70;">use</span> <span style="color: #8cc4ff;">Application</span>
+
+  <span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">start</span>( _type, _args ) <span style="color: #b4fa70;">do</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">Chamamos nosso router daqui</span>
+    {<span style="color: #87cefa;">:ok</span>, <span style="color: #e9b2e3;">_</span>} = <span style="color: #8cc4ff;">Plug.Adapters.Cowboy</span>.http <span style="color: #8cc4ff;">ApiRouter</span>, []
+  <span style="color: #b4fa70;">end</span>
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline15">
+<h2 id="orgheadline15">Amnesia and the art of forgetting!</h2>
+<ul>
+<li>Criado pelo "meh" (sério!)</li>
+<li>É uma camada Elixir sobre o <code>:mnesia</code></li>
+<li>Usa o Exquisite (também criado pelo&#x2026; "meh") como query language</li>
+<li>É uma camada sobre <code>:qlc</code></li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline13">
+<h3 id="orgheadline13">Definindo nosso banco</h3>
+<p>
+lib/api_plug_joken/db.ex
+</p>
+
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #b4fa70;">use</span> <span style="color: #8cc4ff;">Amnesia</span> <span style="color: #73d216;"># </span><span style="color: #73d216;">necessario para importar nossas macros</span>
+
+defdatabase <span style="color: #8cc4ff;">ApiPlugJoken.DB</span> <span style="color: #b4fa70;">do</span>
+
+  deftable <span style="color: #8cc4ff;">User</span>, [{<span style="color: #87cefa;">:id</span>, autoincrement}, <span style="color: #87cefa;">:name</span>, <span style="color: #87cefa;">:email</span>],
+    [<span style="color: #87cefa;">type:</span> <span style="color: #87cefa;">:ordered_set</span>, <span style="color: #87cefa;">index:</span> [<span style="color: #87cefa;">:email</span>]] <span style="color: #b4fa70;">do</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">funcoes de User</span>
+  <span style="color: #b4fa70;">end</span>
+
+  deftable <span style="color: #8cc4ff;">JWT</span>, [<span style="color: #87cefa;">:jti</span>, <span style="color: #87cefa;">:exp</span>, <span style="color: #87cefa;">:iat</span>, <span style="color: #87cefa;">:nbf</span>, <span style="color: #87cefa;">:iss</span>, <span style="color: #87cefa;">:aud</span>], <span style="color: #87cefa;">type:</span> <span style="color: #87cefa;">:bag</span> <span style="color: #b4fa70;">do</span>
+    <span style="color: #73d216;"># </span><span style="color: #73d216;">funcoes de JWT</span>
+  <span style="color: #b4fa70;">end</span>
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline14">
+<h3 id="orgheadline14">Criando o banco de dados</h3>
+<p>
+Basta usar uma mix task!
+</p>
+
+
+<div class="figure">
+<p><img src="imgs/db_mix_task.png" alt="db_mix_task.png" />
+</p>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline20">
+<h2 id="orgheadline20">Esqueleto do nosso cenário</h2>
+<p>
+lib/api_plug_joken/api_router.ex
+</p>
+
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #b4fa70;">defmodule</span> <span style="color: #8cc4ff;">ApiRouter</span> <span style="color: #b4fa70;">do</span>
+  <span style="color: #b4fa70;">use</span> <span style="color: #8cc4ff;">Plug.Router</span>
+
+  plug <span style="color: #8cc4ff;">Plug.Parsers</span>, <span style="color: #87cefa;">parsers:</span> [<span style="color: #87cefa;">:json</span>], <span style="color: #87cefa;">json_decoder:</span> <span style="color: #8cc4ff;">Poison</span>
+  plug <span style="color: #87cefa;">:match</span>
+  plug <span style="color: #87cefa;">:dispatch</span>
+
+  post <span style="color: #e9b96e;">"/user/sign_up"</span>, <span style="color: #87cefa;">do:</span> send_resp(conn, 201, <span style="color: #e9b96e;">"sign UP"</span>)
+  post <span style="color: #e9b96e;">"/user/sign_in"</span>, <span style="color: #87cefa;">do:</span> send_resp(conn, 200, <span style="color: #e9b96e;">"sing IN"</span>)
+  get <span style="color: #e9b96e;">"/user/:user_id"</span>, <span style="color: #87cefa;">do:</span> send_resp(conn, 200, <span style="color: #e9b96e;">"user id </span><span style="color: #fcaf3e;">#{user_id}</span><span style="color: #e9b96e;">"</span>)
+  match <span style="color: #e9b2e3;">_</span>, <span style="color: #87cefa;">do:</span> send_resp(conn, 404, <span style="color: #e9b96e;">"oops"</span>)
+
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline16">
+<h3 id="orgheadline16">Começando pela criação do usuário</h3>
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #b4fa70;">import</span> <span style="color: #8cc4ff;">Joken</span>
+<span style="color: #b4fa70;">alias</span> <span style="color: #8cc4ff;">ApiPlugJoken.DB.User</span>
+<span style="color: #b4fa70;">alias</span> <span style="color: #8cc4ff;">ApiPlugJoken.DB.JWT</span>
+plug <span style="color: #8cc4ff;">Plug.Parsers</span>, <span style="color: #87cefa;">parsers:</span> [<span style="color: #87cefa;">:json</span>], <span style="color: #87cefa;">json_decoder:</span> <span style="color: #8cc4ff;">Poison</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre  class="src src-elixir">post <span style="color: #e9b96e;">"/user/sign_up"</span> <span style="color: #b4fa70;">do</span>
+  <span style="color: #fcaf3e;">user</span> = <span style="color: #8cc4ff;">User</span>.validate_and_parse(conn.body_params)
+  |&gt; <span style="color: #8cc4ff;">User</span>.write!
+
+  <span style="color: #fcaf3e;">jwt</span> = <span style="color: #8cc4ff;">JWT</span>.generate(user)
+
+  <span style="color: #fcaf3e;">compact_jwt</span> = token
+  |&gt; with_claims(jwt)
+  |&gt; sign(hs256(<span style="color: #e9b96e;">"A galinha nao amamenta"</span>))
+  |&gt; get_compact
+
+  <span style="color: #fcaf3e;">resp_body</span> = <span style="color: #8cc4ff;">Poison</span>.encode!(<span style="color: #8cc4ff;">Map</span>.put(user, <span style="color: #87cefa;">:token</span>, compact_jwt))
+
+  conn
+  |&gt; put_resp_header(<span style="color: #e9b96e;">"content-type"</span>, <span style="color: #e9b96e;">"application/json"</span>)
+  |&gt; send_resp(201, resp_body)
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline17">
+<h3 id="orgheadline17">User e JWT revisited</h3>
+<p>
+<code>ApiPlugJoken.DB.User</code>
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">validate_and_parse</span>(%{<span style="color: #e9b96e;">"name"</span> =&gt; rname, <span style="color: #e9b96e;">"email"</span> =&gt; remail}) <span style="color: #b4fa70;">do</span>
+  <span style="color: #b4fa70;">if</span> is_nil(remail), <span style="color: #87cefa;">do:</span> <span style="color: #b4fa70;">raise</span> <span style="color: #e9b96e;">"email is required"</span>
+  <span style="color: #8cc4ff;">%User</span>{<span style="color: #87cefa;">name:</span> rname, <span style="color: #87cefa;">email:</span> remail} |&gt; <span style="color: #8cc4ff;">User</span>.write!
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+<p>
+<code>ApiPlugJoken.DB.JWT</code>
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-elixir">deftable <span style="color: #8cc4ff;">JWT</span>, [<span style="color: #87cefa;">:jti</span>, <span style="color: #87cefa;">:exp</span>, <span style="color: #87cefa;">:iat</span>, <span style="color: #87cefa;">:nbf</span>, <span style="color: #87cefa;">:iss</span>, <span style="color: #87cefa;">:aud</span>], <span style="color: #87cefa;">type:</span> <span style="color: #87cefa;">:bag</span> <span style="color: #b4fa70;">do</span>
+  <span style="color: #b4fa70;">import</span> <span style="color: #8cc4ff;">Joken</span>
+
+  <span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">generate</span>(%{<span style="color: #87cefa;">id:</span> id}) <span style="color: #b4fa70;">do</span>
+    <span style="color: #8cc4ff;">%JWT</span>{
+      <span style="color: #87cefa;">exp:</span> current_time + (2 * 60 * 60),
+      <span style="color: #87cefa;">iat:</span> current_time,
+      <span style="color: #87cefa;">nbf:</span> current_time - 1,
+      <span style="color: #87cefa;">iss:</span> <span style="color: #e9b96e;">"Joken Showcase Server"</span>,
+      <span style="color: #87cefa;">aud:</span> <span style="color: #e9b96e;">"RESTCLIENT"</span>,
+      <span style="color: #87cefa;">jti:</span> id}
+    |&gt; <span style="color: #8cc4ff;">JWT</span>.write!
+  <span style="color: #b4fa70;">end</span>
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline18">
+<h3 id="orgheadline18">Exemplo de resposta</h3>
+<div class="org-src-container">
+
+<pre  class="src src-json">{
+    <span style="color: #b4fa70;">"token"</span>: <span style="color: #e9b96e;">"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.</span>
+<span style="color: #e9b96e;">              eyJhdWQiOiJSRVNUQ0xJRU5UIiwiZXhwIjoxNDQ2ODcyMTM4LCJpYXQiOjE0NDY4NjQ5MzgsImlzcyI6Ikpva2VuIFNob3djYXNlIFNlcnZlciIsImp0aSI6NywibmJmIjoxNDQ2ODY0OTM3fQ</span>
+<span style="color: #e9b96e;">             .9h4ToQV7htWw3tw_P0KmXwb0qZ0uD2UBaCnM9U0VWjQ"</span>,
+    <span style="color: #b4fa70;">"name"</span>: <span style="color: #e9b96e;">"Joseph"</span>,
+    <span style="color: #b4fa70;">"id"</span>: <span style="color: #e9b2e3;">7</span>,
+    <span style="color: #b4fa70;">"email"</span>: <span style="color: #e9b96e;">"ciclano@email.com"</span>
+}
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline19">
+<h3 id="orgheadline19">Mas que diabos??? Capiroto???</h3>
+
+<div class="figure">
+<p><img src="imgs/meme_long_token.jpg" alt="meme_long_token.jpg" />
+</p>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline24">
+<h2 id="orgheadline24">Entendo melhor um JWT</h2>
+<ul>
+<li>Header</li>
+<li>Claim set</li>
+<li>Assinatura</li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline21">
+<h3 id="orgheadline21">Exmeplo do nosso header</h3>
+<div class="org-src-container">
+
+<pre  class="src src-json">{
+    <span style="color: #b4fa70;">"alg"</span>: <span style="color: #e9b96e;">"HS256"</span>,
+    <span style="color: #b4fa70;">"typ"</span>: <span style="color: #e9b96e;">"JWT"</span>
+}
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline22">
+<h3 id="orgheadline22">Possíveis algoritmos</h3>
+
+<div class="figure">
+<p><img src="imgs/joken_bench.png" alt="joken_bench.png" />
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline23">
+<h3 id="orgheadline23">Claim set</h3>
+<ul>
+<li><b>exp</b>: expiração</li>
+<li><b>nbf</b>: not before</li>
+<li><b>iat</b>: issued at</li>
+<li><b>iss</b>: issuer</li>
+<li><b>aud</b>: audience</li>
+<li><b>jti</b>: jwt id</li>
+
+</ul>
+
+<p>
+Mais customizados.
+</p>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline25">
+<h2 id="orgheadline25">Sign in (login)</h2>
+<div class="org-src-container">
+
+<pre  class="src src-elixir">post <span style="color: #e9b96e;">"/user/sign_in"</span> <span style="color: #b4fa70;">do</span>
+  <span style="color: #b4fa70;">require</span> <span style="color: #8cc4ff;">User</span>
+  <span style="color: #b4fa70;">require</span> <span style="color: #8cc4ff;">Exquisite</span>
+
+  <span style="color: #fcaf3e;">body_name</span> = conn.body_params[<span style="color: #e9b96e;">"name"</span>]
+  <span style="color: #fcaf3e;">body_email</span> = conn.body_params[<span style="color: #e9b96e;">"email"</span>]
+
+  <span style="color: #fcaf3e;">result</span> = <span style="color: #8cc4ff;">User</span>.where!(name == body_name <span style="color: #b4fa70;">and</span> email == body_email)
+  |&gt; <span style="color: #8cc4ff;">Amnesia.Selection</span>.values
+
+  <span style="color: #fcaf3e;">user</span> = <span style="color: #b4fa70;">case</span> result <span style="color: #b4fa70;">do</span>
+           [] -&gt;
+             <span style="color: #b4fa70;">raise</span> <span style="color: #e9b96e;">"Unauthenticated"</span>
+           [user] -&gt;
+             user
+           <span style="color: #e9b2e3;">_</span> -&gt;
+             <span style="color: #73d216;"># </span><span style="color: #73d216;">mais de um!</span>
+             <span style="color: #b4fa70;">raise</span> <span style="color: #e9b96e;">"Unauthenticated"</span>
+         <span style="color: #b4fa70;">end</span>
+
+  <span style="color: #fcaf3e;">jwt</span> = <span style="color: #8cc4ff;">JWT</span>.generate(user)
+  generate_token_and_reply(conn, 200, user, jwt)    
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline28">
+<h2 id="orgheadline28">Usando o token</h2>
+<div class="org-src-container">
+
+<pre  class="src src-elixir">get <span style="color: #e9b96e;">"/user/:user_id"</span> <span style="color: #b4fa70;">do</span>
+  <span style="color: #b4fa70;">require</span> <span style="color: #8cc4ff;">User</span>
+  <span style="color: #b4fa70;">require</span> <span style="color: #8cc4ff;">Exquisite</span>
+
+  <span style="color: #73d216;"># </span><span style="color: #73d216;">validate token</span>
+  validate_auth(get_req_header(conn, <span style="color: #e9b96e;">"authentication"</span>))
+
+  <span style="color: #fcaf3e;">user</span> = <span style="color: #8cc4ff;">User</span>.read! <span style="color: #8cc4ff;">String</span>.to_integer(user_id)
+
+  conn
+  |&gt; put_resp_header(<span style="color: #e9b96e;">"content-type"</span>, <span style="color: #e9b96e;">"application/json"</span>)
+  |&gt; send_resp(200, <span style="color: #8cc4ff;">Poison</span>.encode!(user))
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline26">
+<h3 id="orgheadline26">Validando o token</h3>
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #b4fa70;">defp</span> <span style="color: #fce94f;">validate_auth</span>([<span style="color: #e9b96e;">"Bearer "</span> &lt;&gt; jwt_token]) <span style="color: #b4fa70;">do</span>
+  <span style="color: #b4fa70;">require</span> <span style="color: #8cc4ff;">JWT</span>
+  <span style="color: #b4fa70;">require</span> <span style="color: #8cc4ff;">Exquisite</span>
+
+  <span style="color: #fcaf3e;">jwt</span> = jwt_token
+  |&gt; token
+  |&gt; with_validation(<span style="color: #e9b96e;">"exp"</span>, &amp;(&amp;1 &gt; current_time))
+  |&gt; with_validation(<span style="color: #e9b96e;">"iat"</span>, &amp;(&amp;1 &lt; current_time))
+  |&gt; with_validation(<span style="color: #e9b96e;">"nbf"</span>, &amp;(&amp;1 &lt; current_time))
+  |&gt; with_validation(<span style="color: #e9b96e;">"iss"</span>, &amp;(&amp;1 == <span style="color: #e9b96e;">"Joken Showcase Server"</span>))
+  |&gt; with_validation(<span style="color: #e9b96e;">"aud"</span>, &amp;(&amp;1 == <span style="color: #e9b96e;">"RESTCLIENT"</span>))
+  |&gt; verify(hs256(<span style="color: #e9b96e;">"A galinha nao amamenta"</span>), <span style="color: #87cefa;">as:</span> <span style="color: #8cc4ff;">JWT</span>)
+  |&gt; get_claims
+
+  [jwt] = <span style="color: #8cc4ff;">JWT</span>.where!(id == jwt.id)
+  |&gt; <span style="color: #8cc4ff;">Amnesia.Selection</span>.values
+<span style="color: #b4fa70;">end</span>
+<span style="color: #b4fa70;">defp</span> <span style="color: #fce94f;">validate_auth</span>(<span style="color: #e9b2e3;">_</span>), <span style="color: #87cefa;">do:</span> <span style="color: #b4fa70;">raise</span> <span style="color: #e9b96e;">"Unauthenticated"</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline27">
+<h3 id="orgheadline27">Mas podemos fazer melhor!</h3>
+<p>
+<code>Joken.Plug</code> for the win!
+</p>
+
+
+<div class="figure">
+<p><img src="imgs/meme_fazendo_melhor.png" alt="meme_fazendo_melhor.png" />
+</p>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline32">
+<h2 id="orgheadline32">Joken Plug</h2>
+<p>
+2 configurações:
+</p>
+
+<ol>
+<li>Para todas as rotas</li>
+<li>Com configurações <b>POR ROTA</b>!</li>
+
+</ol>
+
+</section>
+<section id="slide-orgheadline29">
+<h3 id="orgheadline29">Configuração por rota</h3>
+<p>
+Usando config por rota:
+</p>
+
+<ul>
+<li>Necessário plugar ENTRE <code>:match</code> e <code>:dispatch</code></li>
+<li>Passa-se um mapa em private para a rota</li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline30">
+<h3 id="orgheadline30">Refatorando: config</h3>
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #d8bfd8;">@skip_auth</span> %{<span style="color: #87cefa;">joken_skip:</span> <span style="color: #87cefa;">true</span>}
+<span style="color: #d8bfd8;">@verify_get</span> %{<span style="color: #87cefa;">joken_on_verifying:</span> <span style="color: #8cc4ff;">&amp;ApiRouter</span>.verify/0}
+
+plug <span style="color: #87cefa;">:match</span>
+plug <span style="color: #8cc4ff;">Joken.Plug</span>, 
+  <span style="color: #87cefa;">on_error:</span> <span style="color: #8cc4ff;">&amp;ApiRouter</span>.error_logging/2
+plug <span style="color: #87cefa;">:dispatch</span>
+</pre>
+</div>
+
+</section>
+<section id="slide-orgheadline31">
+<h3 id="orgheadline31">Refatorando: verificação</h3>
+<div class="org-src-container">
+
+<pre  class="src src-elixir"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">verify</span> <span style="color: #b4fa70;">do</span>
+  <span style="color: #8cc4ff;">%Joken.Token</span>{}
+  |&gt; with_json_module(<span style="color: #8cc4ff;">Poison</span>)
+  |&gt; with_exp
+  |&gt; with_iat
+  |&gt; with_nbf
+  |&gt; with_iss(<span style="color: #e9b96e;">"Joken Showcase Server"</span>)
+  |&gt; with_aud(<span style="color: #e9b96e;">"RESTCLIENT"</span>)
+  |&gt; with_validation(<span style="color: #e9b96e;">"exp"</span>, &amp;(&amp;1 &gt; current_time))
+  |&gt; with_validation(<span style="color: #e9b96e;">"iat"</span>, &amp;(&amp;1 &lt; current_time))
+  |&gt; with_validation(<span style="color: #e9b96e;">"nbf"</span>, &amp;(&amp;1 &lt; current_time))
+  |&gt; with_validation(<span style="color: #e9b96e;">"iss"</span>, &amp;(&amp;1 == <span style="color: #e9b96e;">"Joken Showcase Server"</span>))
+  |&gt; with_validation(<span style="color: #e9b96e;">"aud"</span>, &amp;(&amp;1 == <span style="color: #e9b96e;">"RESTCLIENT"</span>))
+  |&gt; with_signer(hs256(<span style="color: #e9b96e;">"A galinha nao amamenta"</span>))
+<span style="color: #b4fa70;">end</span>
+</pre>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline33">
+<h2 id="orgheadline33">É isso aí pessoal \o/</h2>
+<p>
+victor.nasciment &lt;at&gt; concretesolutions.com.br
+@cs-victor-nascimento
+@olinasc
+</p>
+
+<p>
+Joken: <a href="https://github.com/bryanjos/joken">https://github.com/bryanjos/joken</a>
+</p>
+
+<p>
+<b>Perguntas?</b>
+</p>
+</section>
+</section>
+</div>
+</div>
+<script src="./reveal.js/lib/js/head.min.js"></script>
+<script src="./reveal.js/js/reveal.js"></script>
+
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+controls: true,
+progress: true,
+history: false,
+center: true,
+slideNumber: true,
+rollingLinks: false,
+keyboard: true,
+overview: true,
+
+theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+transitionSpeed: 'default',
+multiplex: {
+    secret: '', // null if client
+    id: '', // id, obtained from socket.io server
+    url: '' // Location of socket.io server
+},
+
+// Optional libraries used to extend on reveal.js
+dependencies: [
+ { src: './reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+ { src: './reveal.js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+ { src: './reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+ { src: './reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+ { src: './reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }]
+});
+</script>
+</body>
+</html>

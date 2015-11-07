@@ -1,0 +1,10 @@
+.reveal pre {
+    background: #333333;
+    opacity: 0.80;
+    padding: 15px;
+}
+
+.src-sh, .src-elixir {
+    color: #FFFFFF;
+}
+

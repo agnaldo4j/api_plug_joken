@@ -1,0 +1,408 @@
+#+TITLE: Plug + Joken
+#+AUTHOR: Victos O Nascimento
+#+EMAIL: @cs-victor-nascimento
+#+DATE: <2015-11-07 Sábado>
+
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+#+LANGUAGE:  pt
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:nil -:t f:t *:t <:t title:nil
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+OPTIONS: reveal_progress 
+#+REVEAL_THEME: sky
+#+REVEAL_EXTRA_CSS: presentation.css
+
+* The power of Elixir
+
+*...and Emacs :D*
+
+* Agenda
+
+- Cenário
+- Frameworks
+- Fluxos de token
+
+* Cenário
+
+/SIGN IN | SIGN UP | GET USER/
+
+- *POST* /user/sign_up
+- *POST* /user/sign_in
+- *GET* /user/{user_id}
+
+* Frameworks utilizados
+
+- Plug
+  - https://github.com/elixir-lang/plug
+  - http://hexdocs.pm/plug
+- Joken 
+  - https://github.com/bryanjos/joken
+  - http://hexdocs.pm/joken
+- Amnesia (hã?)
+  - https://github.com/meh/amnesia
+
+** Mas está faltando coisa...
+
+- *Phoenix????*
+
+  2MM de conexões em uma máquina!!! 
+
+- *Ecto????*
+
+  Tem até conector para MongoDB!!!
+
+** Phoenix vale a pena?
+
+file:imgs/crazy_meme.jpg
+
+** CLARO! Mas qual o overhead?
+
+- Focado em channels e renderização de templates
+- Aceita Plugs, então fácil migrar
+- Suporta APIs mas traz mais do que precisamos
+
+** E o Ecto?
+
+file:imgs/meme_ecto.jpg
+
+** Nosso caso é muito simples
+
+- O Erlang já vem com um banco de dados
+- O Erlang já vem com uma query language
+- É importante conhecer essa linguagem mesmo que vá usar Ecto
+- A apresentação fica mais portável \o/
+
+
+* 1. MIX
+
+file:imgs/mix_output.png
+
+** mix.exs
+
+#+BEGIN_SRC elixir
+
+# precisamos dessas aplicacoes startadas
+def application do
+  [applications: [:logger, :cowboy, :plug, :amnesia],
+   # Nosso módulo que inicia tudo 
+   mod: {ApiPlugJoken, []}]
+end
+
+# estamos usando a branch master de algumas coisas aqui
+defp deps do
+  [{:amnesia, github: "meh/amnesia", branch: "master"},
+   {:poison, "~> 1.5.0"},
+   {:cowboy, "~> 1.0.0"},
+   {:plug, "~> 1.0"},
+   {:joken, github: "bryanjos/joken", branch: "master"}]
+end
+#+END_SRC
+
+#+BEGIN_SRC sh
+mix do deps.get, compile
+#+END_SRC
+
+** ApiPlugJoken
+
+#+BEGIN_SRC elixir
+defmodule ApiPlugJoken do
+  use Application
+  
+  def start( _type, _args ) do
+    # Chamamos nosso router daqui
+    {:ok, _} = Plug.Adapters.Cowboy.http ApiRouter, []
+  end
+end
+#+END_SRC
+
+* Amnesia and the art of forgetting!
+
+- Criado pelo "meh" (sério!)
+- É uma camada Elixir sobre o =:mnesia=
+- Usa o Exquisite (também criado pelo... "meh") como query language
+- É uma camada sobre =:qlc=
+
+** Definindo nosso banco
+
+lib/api_plug_joken/db.ex
+
+#+BEGIN_SRC elixir
+use Amnesia # necessario para importar nossas macros
+
+defdatabase ApiPlugJoken.DB do
+
+  deftable User, [{:id, autoincrement}, :name, :email],
+    [type: :ordered_set, index: [:email]] do
+    # funcoes de User
+  end
+
+  deftable JWT, [:jti, :exp, :iat, :nbf, :iss, :aud], type: :bag do
+    # funcoes de JWT
+  end
+end
+#+END_SRC
+
+** Criando o banco de dados
+
+Basta usar uma mix task!
+
+file:imgs/db_mix_task.png
+
+* Esqueleto do nosso cenário
+
+lib/api_plug_joken/api_router.ex
+
+#+BEGIN_SRC elixir
+defmodule ApiRouter do
+  use Plug.Router
+
+  plug Plug.Parsers, parsers: [:json], json_decoder: Poison
+  plug :match
+  plug :dispatch
+
+  post "/user/sign_up", do: send_resp(conn, 201, "sign UP")
+  post "/user/sign_in", do: send_resp(conn, 200, "sing IN")
+  get "/user/:user_id", do: send_resp(conn, 200, "user id #{user_id}")
+  match _, do: send_resp(conn, 404, "oops")
+
+end
+#+END_SRC
+
+** Começando pela criação do usuário
+
+#+BEGIN_SRC elixir
+  import Joken
+  alias ApiPlugJoken.DB.User
+  alias ApiPlugJoken.DB.JWT
+  plug Plug.Parsers, parsers: [:json], json_decoder: Poison
+#+END_SRC
+
+#+BEGIN_SRC elixir
+post "/user/sign_up" do
+  user = User.validate_and_parse(conn.body_params)
+  |> User.write!
+
+  jwt = JWT.generate(user)
+
+  compact_jwt = token
+  |> with_claims(jwt)
+  |> sign(hs256("A galinha nao amamenta"))
+  |> get_compact
+
+  resp_body = Poison.encode!(Map.put(user, :token, compact_jwt))
+
+  conn
+  |> put_resp_header("content-type", "application/json")
+  |> send_resp(201, resp_body)
+end
+#+END_SRC
+
+** User e JWT revisited
+
+=ApiPlugJoken.DB.User=
+#+BEGIN_SRC elixir
+def validate_and_parse(%{"name" => rname, "email" => remail}) do
+  if is_nil(remail), do: raise "email is required"
+  %User{name: rname, email: remail} |> User.write!
+end
+#+END_SRC
+=ApiPlugJoken.DB.JWT=
+#+BEGIN_SRC elixir
+deftable JWT, [:jti, :exp, :iat, :nbf, :iss, :aud], type: :bag do
+  import Joken
+  
+  def generate(%{id: id}) do
+    %JWT{
+      exp: current_time + (2 * 60 * 60),
+      iat: current_time,
+      nbf: current_time - 1,
+      iss: "Joken Showcase Server",
+      aud: "RESTCLIENT",
+      jti: id}
+    |> JWT.write!
+  end
+end
+#+END_SRC
+
+** Exemplo de resposta
+
+#+BEGIN_SRC json
+
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+              eyJhdWQiOiJSRVNUQ0xJRU5UIiwiZXhwIjoxNDQ2ODcyMTM4LCJpYXQiOjE0NDY4NjQ5MzgsImlzcyI6Ikpva2VuIFNob3djYXNlIFNlcnZlciIsImp0aSI6NywibmJmIjoxNDQ2ODY0OTM3fQ
+             .9h4ToQV7htWw3tw_P0KmXwb0qZ0uD2UBaCnM9U0VWjQ",
+    "name": "Joseph",
+    "id": 7,
+    "email": "ciclano@email.com"
+}
+
+#+END_SRC
+
+** Mas que diabos??? Capiroto???
+
+file:imgs/meme_long_token.jpg
+
+* Entendo melhor um JWT
+
+- Header
+- Claim set
+- Assinatura
+
+** Exmeplo do nosso header
+
+#+BEGIN_SRC json
+
+{
+    "alg": "HS256",
+    "typ": "JWT"
+}
+
+#+END_SRC
+
+** Possíveis algoritmos
+
+file:imgs/joken_bench.png
+
+** Claim set
+
+- *exp*: expiração
+- *nbf*: not before
+- *iat*: issued at
+- *iss*: issuer
+- *aud*: audience
+- *jti*: jwt id
+
+Mais customizados.
+
+* Sign in (login)
+
+#+BEGIN_SRC elixir
+post "/user/sign_in" do
+  require User
+  require Exquisite
+
+  body_name = conn.body_params["name"]
+  body_email = conn.body_params["email"]
+  
+  result = User.where!(name == body_name and email == body_email)
+  |> Amnesia.Selection.values
+
+  user = case result do
+           [] ->
+             raise "Unauthenticated"
+           [user] ->
+             user
+           _ ->
+             # mais de um!
+             raise "Unauthenticated"
+         end
+  
+  jwt = JWT.generate(user)
+  generate_token_and_reply(conn, 200, user, jwt)    
+end
+#+END_SRC
+
+* Usando o token
+
+#+BEGIN_SRC elixir
+get "/user/:user_id" do
+  require User
+  require Exquisite
+
+  # validate token
+  validate_auth(get_req_header(conn, "authentication"))
+
+  user = User.read! String.to_integer(user_id)
+
+  conn
+  |> put_resp_header("content-type", "application/json")
+  |> send_resp(200, Poison.encode!(user))
+end
+#+END_SRC
+
+** Validando o token
+
+#+BEGIN_SRC elixir
+defp validate_auth(["Bearer " <> jwt_token]) do
+  require JWT
+  require Exquisite
+
+  jwt = jwt_token
+  |> token
+  |> with_validation("exp", &(&1 > current_time))
+  |> with_validation("iat", &(&1 < current_time))
+  |> with_validation("nbf", &(&1 < current_time))
+  |> with_validation("iss", &(&1 == "Joken Showcase Server"))
+  |> with_validation("aud", &(&1 == "RESTCLIENT"))
+  |> verify(hs256("A galinha nao amamenta"), as: JWT)
+  |> get_claims
+
+  [jwt] = JWT.where!(id == jwt.id)
+  |> Amnesia.Selection.values
+end
+defp validate_auth(_), do: raise "Unauthenticated"
+#+END_SRC
+
+** Mas podemos fazer melhor!
+
+=Joken.Plug= for the win!
+
+file:imgs/meme_fazendo_melhor.png
+
+* Joken Plug
+
+2 configurações:
+
+1. Para todas as rotas
+2. Com configurações *POR ROTA*!
+
+** Configuração por rota
+
+Usando config por rota:
+
+- Necessário plugar ENTRE =:match= e =:dispatch=
+- Passa-se um mapa em private para a rota
+
+** Refatorando: config
+
+#+BEGIN_SRC elixir
+@skip_auth %{joken_skip: true}
+@verify_get %{joken_on_verifying: &ApiRouter.verify/0}
+
+plug :match
+plug Joken.Plug, 
+  on_error: &ApiRouter.error_logging/2
+plug :dispatch
+#+END_SRC
+
+** Refatorando: verificação
+
+#+BEGIN_SRC elixir
+def verify do
+  %Joken.Token{}
+  |> with_json_module(Poison)
+  |> with_exp
+  |> with_iat
+  |> with_nbf
+  |> with_iss("Joken Showcase Server")
+  |> with_aud("RESTCLIENT")
+  |> with_validation("exp", &(&1 > current_time))
+  |> with_validation("iat", &(&1 < current_time))
+  |> with_validation("nbf", &(&1 < current_time))
+  |> with_validation("iss", &(&1 == "Joken Showcase Server"))
+  |> with_validation("aud", &(&1 == "RESTCLIENT"))
+  |> with_signer(hs256("A galinha nao amamenta"))
+end
+#+END_SRC
+
+* É isso aí pessoal \o/
+
+victor.nasciment <at> concretesolutions.com.br
+@cs-victor-nascimento
+@olinasc
+
+Joken: https://github.com/bryanjos/joken
+
+*Perguntas?*
